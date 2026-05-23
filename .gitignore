@@ -27,6 +27,7 @@ dist/
 .vscode/
 *.swp
 *.swo
+.claude/
 
 # =========================
 # CrewAI & Local Storage
@@ -39,6 +40,11 @@ knowledge/
 # =========================
 # AgentSociety Datasets & Caches
 # =========================
-dummy_dataset/lmdb_cache/
+data/lmdb_cache/
 *.mdb
 logs/
+
+# =========================
+# OpenEvolve outputs
+# =========================
+config/openevolve_output/

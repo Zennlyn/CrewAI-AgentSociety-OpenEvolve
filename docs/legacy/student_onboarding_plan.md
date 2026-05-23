@@ -54,11 +54,9 @@
 開發完成後，請用指令測試你的 Agent 表現如何！
 
 - **免費/不花 Token 的結構測試 (Mock 模式)**:
-  `uv run python run_simulator_test.py --mock`
+  `uv run python run_test.py --mock`
 - **真實 NVIDIA NIM LLM 推論測試**:
-  `uv run python run_simulator_test.py`
-- **正式丟進訓練集評分 (會花費較多時間)**:
-  `uv run python evaluate_with_training_data.py`
+  `uv run python run_test.py`
 
 ---
 <br>

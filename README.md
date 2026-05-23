@@ -1,5 +1,5 @@
 <div style="text-align: center; display: flex; align-items: center; justify-content: center; background-color: white; padding: 20px; border-radius: 30px;">
-  <img src="./static/ASC.jpg" alt="AgentSociety Challenge Logo" width="100" style="margin-right: 20px; border-radius: 10%;">
+  <img src="./docs/legacy/static/ASC.jpg" alt="AgentSociety Challenge Logo" width="100" style="margin-right: 20px; border-radius: 10%;">
   <h1 style="color: black; margin: 0; font-size: 2em;">WWW'25 AgentSociety Challenge: WebSocietySimulator</h1>
 </div>
 
@@ -37,10 +37,10 @@ This is the core library containing all source code required for the competition
   - `EvaluationTool`: Provides comprehensive metrics for both recommendation (HR@1/3/5) and simulation tasks (RMSE, sentiment analysis).
 - **`simulator.py`**: The main simulation framework, which handles task and groundtruth setting, evaluation and agent execution.
 
-### 2. **`example/`**  
+### 2. **`docs/legacy/example/`**  
 Contains usage examples of the `websocietysimulator` library. Includes sample agents and scripts to demonstrate how to load scenarios, set agents, and evaluate them.
 
-### 3. **`data_process.py`**  
+### 3. **`src/utils/data_process.py`**  
 A script to process the raw Yelp dataset into the required format for use with the `websocietysimulator` library. This script ensures the dataset is cleaned and structured correctly for simulations.
 
 ---
@@ -66,7 +66,7 @@ This CrewAI Sandbox version exclusively utilizes [Astral `uv`](https://github.co
 
 3. Verify the Sandbox setup (Mock Mode):
    ```bash
-   uv run python run_simulator_test.py --mock
+   uv run python run_test.py --mock
    ```
    *If the environment is set up correctly, this will simulate the CrewAI agents using a mocked LLM (zero token cost) and print a successful JSON evaluation score.*
 
@@ -80,7 +80,7 @@ This CrewAI Sandbox version exclusively utilizes [Astral `uv`](https://github.co
    ```
    Once the credentials are set, run the full realistic simulation without the mock flag:
    ```bash
-   uv run python run_simulator_test.py
+   uv run python run_test.py
    ```
    *This mode consumes real tokens as the multi-agent system actively queries the LLM and the Vector Embedding spaces to produce accurate predictions.*
 
@@ -91,9 +91,9 @@ This CrewAI Sandbox version exclusively utilizes [Astral `uv`](https://github.co
 1. Download the raw dataset from the Yelp[1], Amazon[2] or Goodreads[3].
 2. Run the `data_process.py` script to process the dataset:
    ```bash
-   python data_process.py --input <path_to_raw_dataset> --output <path_to_processed_dataset>
+   uv run python src/utils/data_process.py --input <path_to_raw_dataset> --output <path_to_processed_dataset>
    ```
-- Check out the [Data Preparation Guide](./tutorials/data_preparation.md) for more information.
+- Check out the [Data Preparation Guide](./docs/legacy/tutorials/data_preparation.md) for more information.
 - **NOTICE: You Need at least 16GB RAM to process the dataset.**
 
 ---
@@ -105,7 +105,7 @@ Ensure the dataset is organized in a directory structure similar to this:
 ```
 <your_dataset_directory>/
 ├── item.json
-├── review.json
+├── train_review_subset.json
 ├── user.json
 ```
 
@@ -115,7 +115,7 @@ You can name the dataset directory whatever you prefer (e.g., `dataset/`).
 
 ### 4. Develop Your Agent
 
-Create a custom agent by extending either `SimulationAgent` or `RecommendationAgent`. Refer to the examples in the `example/` directory. Here's a quick template:
+Create a custom agent by extending either `SimulationAgent` or `RecommendationAgent`. Refer to the examples in the `docs/legacy/example/` directory. Here's a quick template:
 
 ```python
 from yelpsimulator.agents.simulation_agent import SimulationAgent
@@ -140,9 +140,9 @@ class MySimulationAgent(SimulationAgent):
         return stars, review
 ```
 
-- Check out the [Tutorial](./tutorials/agent_development.md) for Agent Development.
-- Baseline User Behavior Simulation Agent: [Baseline User Behavior Simulation Agent](./example/ModelingAgent_baseline.py).
-- Baseline Recommendation Agent: [Baseline Recommendation Agent](./example/RecAgent_baseline.py).
+- Check out the [Tutorial](./docs/legacy/tutorials/agent_development.md) for Agent Development.
+- Baseline User Behavior Simulation Agent: [Baseline User Behavior Simulation Agent](./docs/legacy/example/ModelingAgent_baseline.py).
+- Baseline Recommendation Agent: [Baseline Recommendation Agent](./docs/legacy/example/RecAgent_baseline.py).
 ---
 
 ### 5. Evaluation your agent with training data
@@ -175,7 +175,7 @@ agent_outputs = simulator.run_simulation(number_of_tasks=None, enable_threading=
 # Evaluate the agent
 evaluation_results = simulator.evaluate()
 ```
-- If you want to use your own LLMClient, you can easily implement it by inheriting the `LLMBase` class. Refer to the [Tutorial](./tutorials/agent_development.md) for more information.
+- If you want to use your own LLMClient, you can easily implement it by inheriting the `LLMBase` class. Refer to the [Tutorial](./docs/legacy/tutorials/agent_development.md) for more information.
 
 ---
 
@@ -188,8 +188,8 @@ evaluation_results = simulator.evaluate()
   - When you submit your agent, please carefully **SELECT the TRACK you want to submit to.**
 - **The content of your submission should be a .py file containing your agent (Only one `{your_team}.py` file without evaluation code).**
 - Example submissions:
-  - For Track 1: [submission_1](example/trackOneSubmission_example.zip)
-  - For Track 2: [submission_2](example/trackTwoSubmission_example.zip)
+  - For Track 1: [submission_1](docs/legacy/example/trackOneSubmission_example.zip)
+  - For Track 2: [submission_2](docs/legacy/example/trackTwoSubmission_example.zip)
 
 ---
 
