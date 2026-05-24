@@ -6,6 +6,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
+from dotenv import load_dotenv
+
+# Load NVIDIA NIM API from AgentSocietyChallenge .env
+load_dotenv(os.path.join(current_dir, ".env"))
+
 from websocietysimulator.agent import SimulationAgent
 from src.flows.serving_flow import AgentSocietyServingFlow, InferenceState
 from src.tools.interaction_tool_wrapper import inject_simulator_tool
@@ -14,7 +19,8 @@ class CrewAISimulationAgent(SimulationAgent):
     """
     Adapter connecting AgentSociety's simulator framework to the CrewAI flow.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, agents_config_path=None, *args, **kwargs):
+        self.agents_config_path = agents_config_path or os.environ.get("OPENEVOLVE_AGENTS_YAML", None)
         super().__init__(*args, **kwargs)
 
     def workflow(self):
@@ -33,7 +39,7 @@ class CrewAISimulationAgent(SimulationAgent):
         )
         
         # 4. 實例化並觸發 CrewAI 引擎非同步、無縫執行
-        flow = AgentSocietyServingFlow(initial_state=initial_state)
+        flow = AgentSocietyServingFlow(initial_state=initial_state, agents_config_path=self.agents_config_path)
         final_state_dict = flow.kickoff()
         
         # 5. 按照 AgentSociety Track 1 要求，回傳 dictionary

@@ -28,7 +28,7 @@
         - `goodreads_reviews_poetry.json`
 3. Run the `data_process.py` script to prepare the data for the simulation and recommendation tasks.
 ```bash
-python data_process.py --input <path_to_raw_dataset> --output <path_to_processed_dataset>
+uv run python src/utils/data_process.py --input <path_to_raw_dataset> --output <path_to_processed_dataset>
 ```
 
 ## Dataset Overview and Download Links

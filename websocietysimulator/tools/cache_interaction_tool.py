@@ -53,7 +53,7 @@ class CacheInteractionTool:
         # Initialize reviews and their indices
         with self.review_env.begin(write=True) as txn:
             if not txn.stat()['entries']:
-                for review in tqdm(self._iter_file('review.json')):
+                for review in tqdm(self._iter_file('train_review_subset.json')):
                     # Store the review
                     txn.put(
                         review['review_id'].encode(),

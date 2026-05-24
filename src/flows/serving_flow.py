@@ -48,6 +48,13 @@ class InferenceState(BaseModel):
     generated_review: str = ""
 
 class AgentSocietyServingFlow(Flow[InferenceState]):
+    def __init__(self, agents_config_path: str = None, *args, **kwargs):
+        # super().__init__ MUST come first — CrewAI's Flow base class is
+        # Pydantic-backed and resets the instance __dict__ during init.
+        # Setting custom attributes beforehand causes them to disappear.
+        super().__init__(*args, **kwargs)
+        self.agents_config_path = agents_config_path
+
     @start()
     def init_request(self):
         # 初始化階段，紀錄收到的 user_id 和 item_id
@@ -62,7 +69,13 @@ class AgentSocietyServingFlow(Flow[InferenceState]):
         }
         
         # 啟動並執行 Crew AI 團隊
-        result = SimulationCrew().crew().kickoff(inputs=inputs)
+        crew_instance = SimulationCrew()
+        if self.agents_config_path:
+            import yaml
+            with open(self.agents_config_path, "r", encoding='utf-8') as f:
+                crew_instance.agents_config = yaml.safe_load(f)
+
+        result = crew_instance.crew().kickoff(inputs=inputs)
         
         # 使用多層 Regex 容錯解析 LLM 的回傳結果
         try:
