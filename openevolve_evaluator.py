@@ -27,10 +27,10 @@ def _get_simulator() -> Simulator:
     if _simulator is None:
         logging.getLogger().setLevel(logging.WARNING)
         print("[Evaluator] Initializing Simulator with sampled dataset (one-time)...")
-        _simulator = Simulator(data_dir="data", device="cpu", cache=True)
+        _simulator = Simulator(data_dir="dummy_dataset", device="cpu", cache=True)
         _simulator.set_task_and_groundtruth(
-            task_dir="eval_dataset/tasks",
-            groundtruth_dir="eval_dataset/groundtruth"
+            task_dir="dummy_tasks",
+            groundtruth_dir="dummy_groundtruth"
         )
         _simulator.set_agent(CrewAISimulationAgent)
         print("[Evaluator] Simulator ready.")

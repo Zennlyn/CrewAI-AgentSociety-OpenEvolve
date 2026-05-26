@@ -46,6 +46,8 @@ The two repos share **the exact same underlying code** (same `websocietysimulato
 
 **Good news: your CrewAI system needs zero changes to be ported over.** Anything that runs in the parent repo will run in the evolution version too. The only addition is "a layer that can evolve your prompts on top".
 
+> ✅ **Data paths are also identical**: both repos use the same directory layout (`dummy_dataset/`, `dummy_tasks/`, `dummy_groundtruth/`, `review.json`, etc.), so any `data_dir` / `task_dir` paths from your parent-repo code work as-is.
+
 ---
 
 ## 2. File Correspondence Between the Two Repos (Most Important!)
@@ -62,6 +64,32 @@ The two repos share **the exact same underlying code** (same `websocietysimulato
 | ❌ Does not exist | `config/agents_evolving.yaml` | 🆕 **Create new** (from `agents.yaml` + `EVOLVE-BLOCK` markers) |
 | ❌ Does not exist | `config/openevolve_config.yaml` | ⛔ Defaults are usually fine |
 | ❌ Does not exist | `openevolve_evaluator.py` | ⛔ Do not touch |
+
+### 2.1 Data Directory Structure (Identical in Both Repos)
+
+Both repos use the same data directory naming, so **bringing data over from the parent repo requires no path/filename changes**:
+
+```
+dummy_dataset/
+├── item.json                # items / businesses
+├── user.json                # users
+├── review.json              # historical reviews
+├── test_review_subset.json  # sampling source (input for create_sampled_dataset.py)
+└── lmdb_cache/              # LMDB index (auto-built on first run; safe to delete)
+
+dummy_tasks/                 # simulation tasks (task_1.json ~ task_N.json)
+dummy_groundtruth/           # corresponding groundtruth (groundtruth_*.json)
+```
+
+If you generated new data in the parent repo via `create_sampled_dataset.py` or `data_process.py`:
+
+| What you produced in the parent repo | Where it goes in the evolution repo |
+|--------------------------------------|--------------------------------------|
+| `dummy_tasks/task_*.json` | Same-named `dummy_tasks/` (just copy) |
+| `dummy_groundtruth/groundtruth_*.json` | Same-named `dummy_groundtruth/` (just copy) |
+| `dummy_dataset/{item,user,review}.json` | Same-named `dummy_dataset/` (just copy; remember to remove the old `lmdb_cache/`) |
+
+> 💡 Paths are hard-coded in `openevolve_evaluator.py`, `run_test.py`, and `src/utils/create_sampled_dataset.py`, but **because the naming matches the parent repo, you don't need to edit those files**.
 
 ---
 

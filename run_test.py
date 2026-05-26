@@ -89,10 +89,10 @@ def main() -> int:
     try:
         # 1. 建立 Simulator
         print(">>> 載入 Dataset (data)...")
-        simulator = Simulator(data_dir="data", device="cpu", cache=True)
+        simulator = Simulator(data_dir="dummy_dataset", device="cpu", cache=True)
         simulator.set_task_and_groundtruth(
-            task_dir="eval_dataset/tasks",
-            groundtruth_dir="eval_dataset/groundtruth",
+            task_dir="dummy_tasks",
+            groundtruth_dir="dummy_groundtruth",
         )
         simulator.set_agent(CrewAISimulationAgent)
 

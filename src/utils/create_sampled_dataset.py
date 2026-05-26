@@ -39,8 +39,8 @@ def create_sample(input_path, output_task_dir, output_gt_dir, n_samples):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="data/test_review_subset.json")
-    parser.add_argument("--task-dir", default="eval_dataset/tasks")
-    parser.add_argument("--gt-dir", default="eval_dataset/groundtruth")
+    parser.add_argument("--task-dir", default="dummy_tasks")
+    parser.add_argument("--gt-dir", default="dummy_groundtruth")
     parser.add_argument("--n", type=int, default=5)
     args = parser.parse_args()
     
