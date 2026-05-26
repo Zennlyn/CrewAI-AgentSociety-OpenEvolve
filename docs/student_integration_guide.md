@@ -45,6 +45,8 @@
 
 **好消息：你的 CrewAI 系統不用任何改動就能搬過來。** 你在父 repo 裡跑得通的東西，搬到進化版之後依然跑得通。差別只是「多了一層可以演化你的 prompts」。
 
+> ✅ **資料路徑也完全一致**：兩個 repo 都使用 `dummy_dataset/`、`dummy_tasks/`、`dummy_groundtruth/`、`review.json` 等相同的目錄結構與檔名，所以你在父 repo 寫的任何 `data_dir` / `task_dir` 路徑都能直接搬過來不用改。
+
 ---
 
 ## 2. 兩個 Repo 的檔案對應關係（最重要！）
@@ -61,6 +63,32 @@
 | ❌ 沒有 | `config/agents_evolving.yaml` | 🆕 **新建**（從 `agents.yaml` 加上 `EVOLVE-BLOCK`） |
 | ❌ 沒有 | `config/openevolve_config.yaml` | ⛔ 通常用預設值即可 |
 | ❌ 沒有 | `openevolve_evaluator.py` | ⛔ 完全不動 |
+
+### 2.1 資料目錄結構（兩個 repo 完全一致）
+
+兩個 repo 使用相同的資料目錄命名，所以**從父 repo 搬資料過來不需要改任何路徑或檔名**：
+
+```
+dummy_dataset/
+├── item.json                # 商品/商家資料
+├── user.json                # 用戶資料
+├── review.json              # 歷史評論資料
+├── test_review_subset.json  # 取樣用（create_sampled_dataset.py 的輸入）
+└── lmdb_cache/              # LMDB 索引（首次執行自動建立，可刪可重建）
+
+dummy_tasks/                 # 模擬任務（task_1.json ~ task_N.json）
+dummy_groundtruth/           # 對應的真實答案（groundtruth_*.json）
+```
+
+如果你自己用 `create_sampled_dataset.py` 或 `data_process.py` 產生新的資料：
+
+| 你在父 repo 產出的東西 | 進化版要放到哪裡 |
+|-----------------------|-----------------|
+| `dummy_tasks/task_*.json` | 同名 `dummy_tasks/`（直接複製） |
+| `dummy_groundtruth/groundtruth_*.json` | 同名 `dummy_groundtruth/`（直接複製） |
+| `dummy_dataset/{item,user,review}.json` | 同名 `dummy_dataset/`（直接複製，記得清掉舊的 `lmdb_cache/`） |
+
+> 💡 路徑寫死在 `openevolve_evaluator.py`、`run_test.py`、`src/utils/create_sampled_dataset.py` 中，但**因為命名完全對齊父 repo，你不需要動這些檔案**。
 
 ---
 

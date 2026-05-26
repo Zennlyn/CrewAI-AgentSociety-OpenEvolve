@@ -56,16 +56,18 @@ Push worktree 分支 → 開 PR → merge 進 main → 本地 pull main
 ## 資料目錄
 
 ```
-data/
+dummy_dataset/
 ├── item.json                  # 商家/商品資料
 ├── user.json                  # 用戶資料
-├── train_review_subset.json   # 訓練用評論資料
-└── test_review_subset.json    # 取樣用評論資料（create_sampled_dataset.py 的輸入）
+├── review.json                # 歷史評論資料
+├── test_review_subset.json    # 取樣用評論資料（create_sampled_dataset.py 的輸入）
+└── lmdb_cache/                # LMDB 索引快取（首次執行自動建立）
 
-eval_dataset/
-├── tasks/                     # 5 個模擬任務（task_1.json ~ task_5.json）
-└── groundtruth/               # 對應 5 個真實答案
+dummy_tasks/                   # 5 個模擬任務（task_1.json ~ task_5.json）
+dummy_groundtruth/             # 對應 5 個真實答案
 ```
+
+> 路徑命名刻意與父 repo [`AgentSocietyChallenge_w_CrewAI`](https://github.com/yuchieh/AgentSocietyChallenge_w_CrewAI) 對齊，讓學生從父 repo 搬程式過來時不需要修改任何路徑。
 
 ---
 

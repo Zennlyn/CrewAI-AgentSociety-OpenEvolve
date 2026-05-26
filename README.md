@@ -105,7 +105,7 @@ Ensure the dataset is organized in a directory structure similar to this:
 ```
 <your_dataset_directory>/
 ├── item.json
-├── train_review_subset.json
+├── review.json
 ├── user.json
 ```
 

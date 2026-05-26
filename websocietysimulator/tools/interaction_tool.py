@@ -22,8 +22,8 @@ class InteractionTool:
         self.user_data = {user['user_id']: user for user in self._load_data('user.json')}
         
         # Create review indices
-        logger.info(f"Loading review data from {os.path.join(data_dir, 'train_review_subset.json')}")
-        reviews = self._load_data('train_review_subset.json')
+        logger.info(f"Loading review data from {os.path.join(data_dir, 'review.json')}")
+        reviews = self._load_data('review.json')
         self.review_data = {review['review_id']: review for review in reviews}
         self.item_reviews = {}
         self.user_reviews = {}

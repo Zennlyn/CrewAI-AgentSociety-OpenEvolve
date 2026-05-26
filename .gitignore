@@ -40,7 +40,7 @@ knowledge/
 # =========================
 # AgentSociety Datasets & Caches
 # =========================
-data/lmdb_cache/
+dummy_dataset/lmdb_cache/
 *.mdb
 logs/
 
