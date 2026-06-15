@@ -1,59 +1,88 @@
-retrieve_data_task:
+analyze_user_task:
   description: >
-    Use the tool to retrieve all background data for User ID "{user_id}" and Item ID "{item_id}".
-    You MUST use the Interaction Tool Wrapper to query data.
-    You MUST pass a valid JSON dictionary as Action Input, following these exact formats:
-
-    First, query the user profile:
-    Action: Interaction Tool Wrapper
-    Action Input: {{"query_type": "user", "target_id": "{user_id}"}}
-
-    Then, query the item details:
-    Action: Interaction Tool Wrapper
-    Action Input: {{"query_type": "item", "target_id": "{item_id}"}}
-
-    Then, query the user's historical reviews:
-    Action: Interaction Tool Wrapper
-    Action Input: {{"query_type": "review_by_user", "target_id": "{user_id}"}}
-
-    Finally, query the item's historical reviews (other users' opinions of this item):
-    Action: Interaction Tool Wrapper
-    Action Input: {{"query_type": "review_by_item", "target_id": "{item_id}"}}
-
-    query_type must be exactly one of: "user", "item", "review_by_user", "review_by_item".
-    You MUST complete all four tool calls above, then compile all results into a summary.
+    Use the search_user_profile_data tool to find information about user {user_id}.
+    You MUST call the tool with a natural language search_query string, for example:
+    Action: search_user_profile_data
+    Action Input: {{"search_query": "What are the review habits and average stars for user {user_id}"}}
+    Also use search_historical_reviews_data to find past reviews written by this user.
+    Understand their average stars, what words they commonly use, and their general sentiment.
+    Do NOT return a Final Answer until you have real Observation results from both tools.
   expected_output: >
-    A markdown summary covering four aspects:
-    1. User's historical preferences, average rating, rating distribution, and writing style.
-    2. Target item's key attributes (category, location, declared stars).
-    3. Item's actual rating distribution from OTHER users' reviews (to calibrate the user's likely rating relative to crowd consensus).
-    4. Any obvious mismatch or alignment between the user's rating habits and the item's typical reception.
-  agent: data_retriever
+    A detailed markdown profile of user {user_id}'s preferences and rating habits.
+  agent: user_analyst
 
-analyze_preference_task:
+analyze_item_task:
   description: >
-    Review the retrieved data for User "{user_id}" and Item "{item_id}", and perform a deep compatibility analysis.
-    Pay special attention to:
-    1. The user's AVERAGE star rating across all their reviews. If they average 3.2 stars, they are a critical reviewer.
-    2. The user's rating DISTRIBUTION - do they mostly give 1-2 stars, 3 stars, or 4-5 stars?
-    3. Whether this item's category/features align with things the user has rated highly or poorly before.
-    4. Do NOT assume the user will like the item. Many users are critical and give low ratings.
+    This task is INDEPENDENT of the user analysis. Do NOT use any user profile data.
+    Use the search_restaurant_feature_data tool to find information about business {item_id} ONLY.
+    You MUST call the tool with a natural language search_query string, for example:
+    Action: search_restaurant_feature_data
+    Action Input: {{"search_query": "What are the categories and star rating for business {item_id}"}}
+    Also use search_historical_reviews_data to find past reviews about this business.
+    Understand its categories, attributes, and overall public sentiment.
+    Do NOT use or reference any user profile information in this task.
   expected_output: >
-    A psychological analysis report that includes the user's average rating tendency, likely satisfaction level with this specific item, and a preliminary rating estimate with justification.
-  agent: psychological_analyst
+    A detailed markdown report of business {item_id}'s features, pros, and cons,
+    based solely on restaurant data and reviews about the business.
+  agent: item_analyst
 
-simulate_review_task:
+web_research_task:
   description: >
-    Based on the preference analysis above, produce the final simulated rating and review.
-    CRITICAL RULES:
-    1. Your star rating MUST reflect the user's actual rating habits. If the user averages 3.0 stars, do NOT give 4.5.
-    2. Write the review in ENGLISH, matching the user's typical vocabulary and tone.
-    3. Be willing to give ratings of 1, 2, or 3 stars if the analysis suggests the user would be critical.
-    4. Your response must contain ONLY a valid JSON object in this exact format:
-    {{"stars": 3.0, "review": "The review text in English..."}}
+    This task is INDEPENDENT of user and item analysis data.
+    Search the internet for general reputation, recent reviews, and news
+    about business {item_id}.
+    Use the SerperDevTool with a natural language search query, for example:
+    Action: Search the internet
+    Action Input: {{"search_query": "business {item_id} reputation recent reviews news"}}
+    Focus on overall public sentiment, notable mentions, and any recent developments.
+    Do NOT use or reference any user profile or internal database information.
+  expected_output: >
+    A concise markdown summary of the business's general online reputation,
+    recent customer sentiment, and any notable news or mentions found on the web.
+  agent: web_researcher
+
+eda_task:
+  description: >
+    This task is INDEPENDENT of user profile data. Do NOT use any user information.
+    Use the search_historical_reviews_data tool to retrieve all available reviews
+    for business {item_id} only.
+    You MUST call the tool with a natural language search_query string, for example:
+    Action: search_historical_reviews_data
+    Action Input: {{"search_query": "all reviews and star ratings for business {item_id}"}}
+    From the retrieved reviews, compute and summarize:
+    - The distribution of star ratings (how many 1★, 2★, 3★, 4★, 5★ reviews)
+    - The average star rating across all retrieved reviews
+    - Any strong skew or bias in the ratings (e.g. mostly 5★ or mostly 1★)
+    - The dominant sentiment trend (positive, negative, mixed)
+    Use this to establish a realistic rating baseline for this business.
+  expected_output: >
+    A concise markdown report containing:
+    - Star rating distribution for business {item_id}
+    - Computed average star rating
+    - Identified rating bias or skew
+    - Dominant sentiment trend
+    This report will be used to calibrate the final star rating prediction.
+  agent: eda_specialist
+
+predict_review_task:
+  description: >
+    Using ALL FOUR inputs from previous tasks, predict the Stars (1.0 to 5.0)
+    and write the Review Text:
+    - User profile: the user's historical preferences and rating habits
+    - Item report: the restaurant's internal features and past Yelp reviews
+    - Web research: the restaurant's general online reputation and recent news
+    - EDA report: the statistical star distribution and rating bias for this business
+    Use the EDA report to ensure your predicted star rating falls within realistic
+    historical bounds for this business. For example, if the business is heavily
+    skewed toward 5★, factor that into the prediction.
+    Do NOT say the data was not found. Synthesize all four sources.
+  expected_output: >
+    Output ONLY a valid JSON object with exactly two keys: "stars" (a float from 1.0 to 5.0) and "review" (a string).
+    Use single curly braces. Example: {"stars": 4.5, "review": "The review text..."}
     Do NOT include any text before or after the JSON object. Do NOT use double curly braces.
-  expected_output: >
-    Output ONLY a valid JSON object with exactly two keys: "stars" (a float from 1.0 to 5.0) and "review" (a string in English).
-    Example: {"stars": 3.0, "review": "The food was decent but nothing special..."}
-    Do NOT include any text before or after the JSON object.
-  agent: behavior_simulator
+  context:
+    - analyze_user_task
+    - analyze_item_task
+    - web_research_task
+    - eda_task
+  agent: prediction_modeler

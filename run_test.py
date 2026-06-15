@@ -116,7 +116,11 @@ def main() -> int:
         print("💡 競賽衡量結果:")
         print(json.dumps(evaluation_results, indent=2, ensure_ascii=False))
 
-        print("\n✅ 整合測試完成！")
+        # print("\n✅ 整合測試完成！")
+        metrics = evaluation_results.get("metrics", {})
+        overall_quality = metrics.get("overall_quality", 0.0)
+        print("\n✅ Integration test complete!")
+        print(f"overall_quality: {overall_quality:.4f}")
         return 0
 
     except Exception as e:

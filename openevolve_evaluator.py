@@ -2,7 +2,16 @@ import os
 import tempfile
 import sys
 import logging
+import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+
+# Force 'spawn' start method on Linux to avoid fork-safety issues with LanceDB/models.
+# This must be called before any process pool is initialized.
+if sys.platform != 'win32':
+    try:
+        multiprocessing.set_start_method('spawn', force=True)
+    except RuntimeError:
+        pass
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
 if project_dir not in sys.path:
@@ -14,25 +23,33 @@ from crewai_simulation_agent import CrewAISimulationAgent
 # 整個 simulation 的 hard timeout（秒）。超時則回傳 fallback fitness 讓 OpenEvolve 繼續。
 # 預設 15 分鐘，可由 OPENEVOLVE_SIM_TIMEOUT env var 覆寫。
 SIM_TIMEOUT_SEC = int(os.environ.get("OPENEVOLVE_SIM_TIMEOUT", 900))
-
+print(f"SIM_TIMEOUT_SEC: {SIM_TIMEOUT_SEC}")
 # ---------------------------------------------------------------------------
 # Lazy singleton: Simulator is expensive to initialize (loads LMDB dataset).
 # OpenEvolve imports this module once and calls evaluate() many times, so we
 # initialize on the first call and reuse the same instance afterward.
 # ---------------------------------------------------------------------------
 _simulator: Simulator = None
+_simulator_pid: int = None
 
 def _get_simulator() -> Simulator:
-    global _simulator
-    if _simulator is None:
-        logging.getLogger().setLevel(logging.WARNING)
-        print("[Evaluator] Initializing Simulator with sampled dataset (one-time)...")
+    global _simulator, _simulator_pid
+    current_pid = os.getpid()
+    
+    if _simulator is None or _simulator_pid != current_pid:
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout, force=True)
+        if _simulator_pid is not None and _simulator_pid != current_pid:
+            print(f"[Evaluator] PID changed ({_simulator_pid} -> {current_pid}), re-initializing Simulator...")
+        else:
+            print("[Evaluator] Initializing Simulator with sampled dataset (one-time for this process)...")
+            
         _simulator = Simulator(data_dir="dummy_dataset", device="cpu", cache=True)
         _simulator.set_task_and_groundtruth(
             task_dir="dummy_tasks",
             groundtruth_dir="dummy_groundtruth"
         )
         _simulator.set_agent(CrewAISimulationAgent)
+        _simulator_pid = current_pid
         print("[Evaluator] Simulator ready.")
     return _simulator
 
@@ -53,10 +70,17 @@ def evaluate(program_path: str) -> dict:
     """
     simulator = _get_simulator()
     try:
+        # 0. Reset mutable state from any previous iteration so the singleton
+        #    Simulator starts clean. Without this, stale simulation_outputs
+        #    from a previous run corrupt evaluate() on iteration 2+.
+        simulator.simulation_outputs = []
+        simulator.evaluation_results = []
+
         # 1. Tell CrewAISimulationAgent to load this YAML config for the run
         os.environ["OPENEVOLVE_AGENTS_YAML"] = program_path
 
         num_tasks = int(os.environ.get("OPENEVOLVE_NUM_TASKS", 5))
+        print(f"Num of tasks: {num_tasks}\n")
         print(f"\n[Evaluator] Running simulation: {program_path}  (tasks={num_tasks}, timeout={SIM_TIMEOUT_SEC}s)")
 
         # Hard timeout 包住整個 simulation。如果 simulator/CrewAI/LiteLLM 內部卡住
@@ -68,7 +92,7 @@ def evaluate(program_path: str) -> dict:
                     simulator.run_simulation,
                     number_of_tasks=num_tasks,
                     enable_threading=True,
-                    max_workers=2,
+                    max_workers=1,
                 )
                 future.result(timeout=SIM_TIMEOUT_SEC)
         except FuturesTimeout:

@@ -185,12 +185,6 @@ class Simulator:
             self.simulation_outputs = [None] * len(task_to_run)
 
             def process_task(task_index_tuple):
-                from concurrent.futures import ThreadPoolExecutor, TimeoutError
-                
-                def run_agent_task(agent, task):
-                    output = agent.workflow()
-                    return output
-                
                 index, task = task_index_tuple
                 # 检查是否已经被要求取消
                 if cancel_event.is_set():
@@ -204,21 +198,14 @@ class Simulator:
                 agent.insert_task(task)
                 
                 try:
-                    # 使用内部的ThreadPoolExecutor来执行单个任务，设置超时时间为5分钟
-                    with ThreadPoolExecutor(max_workers=1) as single_task_executor:
-                        future = single_task_executor.submit(run_agent_task, agent, task)
-                        try:
-                            output = future.result(timeout=300)  # 5 minutes timeout
-                            result = {
-                                "task": task.to_dict(),
-                                "output": output
-                            }
-                        except TimeoutError:
-                            logger.warning(f"Task {index} timed out")
-                            # 强制关闭执行器
-                            single_task_executor._threads.clear()
-                            single_task_executor.shutdown(wait=False)
-                            return index, None
+                    # Call workflow directly — the outer evaluator timeout handles
+                    # time limits. Nesting another ThreadPoolExecutor here created
+                    # unkillable zombie threads that corrupted the singleton Simulator.
+                    output = agent.workflow()
+                    result = {
+                        "task": task.to_dict(),
+                        "output": output
+                    }
                 except NotImplementedError:
                     result = {
                         "task": task.to_dict(),
@@ -280,30 +267,36 @@ class Simulator:
         if not self.simulation_outputs:
             raise RuntimeError("No simulation outputs to evaluate. Run simulation first.")
         
-        # 检查数据条目数量
-        sim_count = len(self.simulation_outputs)
+        # Work on local copies — never mutate self.simulation_outputs so the
+        # singleton Simulator stays clean for the next OpenEvolve iteration.
+        sim_outputs = list(self.simulation_outputs)
+        sim_count = len(sim_outputs)
         gt_count = len(self.groundtruth_data)
         
         if sim_count != gt_count:
             logger.warning(f"Warning: Number of simulation outputs ({sim_count}) does not match ground truth data ({gt_count})")
-            # 使用较小的数量
             eval_count = min(sim_count, gt_count)
             groundtruth_data = self.groundtruth_data[:eval_count]
-            self.simulation_outputs = self.simulation_outputs[:eval_count]
+            sim_outputs = sim_outputs[:eval_count]
         else:
+            eval_count = sim_count
             groundtruth_data = self.groundtruth_data
         
         evaluation_results = {}
         
-        # 根据agent类型选择评估方法
-        if issubclass(self.agent_class, RecommendationAgent):
-            evaluation_results = self._evaluate_recommendation(groundtruth_data)
-        elif issubclass(self.agent_class, SimulationAgent):
-            evaluation_results = self._evaluate_simulation(groundtruth_data)
+        # Temporarily swap in the local copy for _evaluate_* methods
+        original_outputs = self.simulation_outputs
+        self.simulation_outputs = sim_outputs
+        try:
+            if issubclass(self.agent_class, RecommendationAgent):
+                evaluation_results = self._evaluate_recommendation(groundtruth_data)
+            elif issubclass(self.agent_class, SimulationAgent):
+                evaluation_results = self._evaluate_simulation(groundtruth_data)
+        finally:
+            self.simulation_outputs = original_outputs
         
-        # 添加数据条目信息到评估结果中
         evaluation_results['data_info'] = {
-            'evaluated_count': eval_count if sim_count != gt_count else sim_count,
+            'evaluated_count': eval_count,
             'original_simulation_count': sim_count,
             'original_ground_truth_count': gt_count
         }

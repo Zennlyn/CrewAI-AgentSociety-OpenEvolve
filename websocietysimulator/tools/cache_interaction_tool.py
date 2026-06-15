@@ -1,4 +1,5 @@
 import logging
+import threading
 import os
 import json
 import lmdb
@@ -8,6 +9,10 @@ from tqdm import tqdm
 logger = logging.getLogger("websocietysimulator")
 
 class CacheInteractionTool:
+    # Class-level registry for LMDB environments to prevent multiple opens in the same process
+    _envs: Dict[str, lmdb.Environment] = {}
+    _envs_lock = threading.Lock()
+
     def __init__(self, data_dir: str):
         """
         Initialize the tool with the dataset directory.
@@ -21,12 +26,23 @@ class CacheInteractionTool:
         self.env_dir = os.path.join(data_dir, "lmdb_cache")
         os.makedirs(self.env_dir, exist_ok=True)
 
-        self.user_env = lmdb.open(os.path.join(self.env_dir, "users"), map_size=2 * 1024 * 1024 * 1024)
-        self.item_env = lmdb.open(os.path.join(self.env_dir, "items"), map_size=2 * 1024 * 1024 * 1024)
-        self.review_env = lmdb.open(os.path.join(self.env_dir, "reviews"), map_size=8 * 1024 * 1024 * 1024)
+        with self._envs_lock:
+            self.user_env = self._get_or_create_env("users", 2 * 1024 * 1024 * 1024)
+            self.item_env = self._get_or_create_env("items", 2 * 1024 * 1024 * 1024)
+            self.review_env = self._get_or_create_env("reviews", 8 * 1024 * 1024 * 1024)
 
         # Initialize the database if empty
         self._initialize_db()
+
+    def _get_or_create_env(self, name: str, map_size: int) -> lmdb.Environment:
+        """Get an existing LMDB environment or create a new one."""
+        env_path = os.path.join(self.env_dir, name)
+        abs_path = os.path.abspath(env_path)
+        
+        if abs_path not in self._envs:
+            logger.info(f"Opening LMDB environment: {abs_path}")
+            self._envs[abs_path] = lmdb.open(abs_path, map_size=map_size)
+        return self._envs[abs_path]
 
     def _initialize_db(self):
         """Initialize the LMDB databases with data if they are empty."""
@@ -132,8 +148,4 @@ class CacheInteractionTool:
                     reviews.append(json.loads(review_data))
             return reviews
 
-    def __del__(self):
-        """Cleanup LMDB environments on object destruction."""
-        self.user_env.close()
-        self.item_env.close()
-        self.review_env.close()
+    # Removed __del__ to prevent accidental closing of shared environments

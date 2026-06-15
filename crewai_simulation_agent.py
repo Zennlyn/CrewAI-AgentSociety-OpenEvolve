@@ -39,8 +39,10 @@ class CrewAISimulationAgent(SimulationAgent):
         )
         
         # 4. 實例化並觸發 CrewAI 引擎非同步、無縫執行
+        print(f"\n[CrewAISimulationAgent] Starting simulation for user_id={current_user_id}, item_id={current_item_id}")
         flow = AgentSocietyServingFlow(initial_state=initial_state, agents_config_path=self.agents_config_path)
         final_state_dict = flow.kickoff()
+        print(f"[CrewAISimulationAgent] Simulation finished for user_id={current_user_id}")
         
         # 5. 按照 AgentSociety Track 1 要求，回傳 dictionary
         return {
